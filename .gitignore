@@ -1,0 +1,50 @@
+*.d
+
+# Compiled Object files
+*.o
+*.obj
+*.slo
+*.lo
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Static libraries
+*.a
+*.lib
+*.lai
+*.la
+
+# Compiled Dynamic libraries
+*.so
+*.so.*
+*.dylib
+*.dll
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Build Directories (highly recommended pattern)
+[Bb]uild/
+[Dd]ebug/
+[Rr]elease/
+
+# CMake Build System Outputs
+CMakeFiles/
+CMakeCache.txt
+CMakeUserPresets.json
+cmake_install.cmake
+Makefile
+targets/
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.bak
+*.log
+.DS_Store
+Thumbs.db
