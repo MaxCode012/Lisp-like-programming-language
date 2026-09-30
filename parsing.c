@@ -25,14 +25,22 @@ typedef struct
 {
   int type;
   long num;
-  int err;
+
+  char *err;
+  char *sym;
+
+  int count;
+  struct lval **cell;
+
 } lval;
 
 // Values of the type field
 enum
 {
   LVAL_NUM,
-  LVAL_ERR
+  LVAL_ERR,
+  LVAL_SYM,
+  LVAL_SEXPR
 };
 
 enum
@@ -42,20 +50,65 @@ enum
   LERR_BAD_NUM
 };
 
-lval lval_num(long x)
+lval *lval_num(long x)
 {
-  lval v;
-  v.type = LVAL_NUM;
-  v.num = x;
+  lval *v = malloc(sizeof(lval));
+  v->type = LVAL_NUM;
+  v->num = x;
   return v;
 }
 
-lval lval_err(int x)
+lval *lval_err(char *m)
 {
-  lval v;
-  v.type = LVAL_ERR;
-  v.err = x;
+  lval *v = malloc(sizeof(x));
+  v->type = LVAL_ERR;
+  v->err = malloc(strlen(m) + 1);
+  strcpy(v->err, m);
   return v;
+}
+
+lval *lval_sym(char *s)
+{
+  lval *v = malloc(sizeof(lval));
+  v->type = LVAL_SYM;
+  v->sym = malloc(strlen(s) + 1);
+  strcpy(v->sym, s);
+  return v;
+}
+
+lval *lval_sexpr(void)
+{
+  lval *v = malloc(sizeof(lval));
+  v->type = LVAL_SEXPR;
+  v->count = 0;
+  v->cell = NULL;
+  return v;
+}
+
+void delete_lval(lval *v)
+{
+  switch (v->type)
+  {
+  case LVAL_NUM:
+    break;
+
+  case LVAL_ERR:
+    free(v->err);
+    break;
+
+  case LVAL_SYM:
+    free(v->sym);
+    break;
+
+  case LVAL_SEXPR:
+    for (int i = 0; i < v->count; i++)
+      delete_lval(v->cell[i]);
+
+    free(v->cell);
+    break;
+  }
+
+  free(v);
 }
 
 void lval_print(lval v)
@@ -156,23 +209,21 @@ lval eval(mpc_ast_t *t)
 int main(int argc, char **argv)
 {
 
-  /* Create Some Parsers */
   mpc_parser_t *String = mpc_new("string");
   mpc_parser_t *Number = mpc_new("number");
-  mpc_parser_t *Operator = mpc_new("operator");
+  mpc_parser_t *Symbol = mpc_new("symbol");
   mpc_parser_t *Expr = mpc_new("expr");
   mpc_parser_t *Lispy = mpc_new("lispy");
 
-  /* Define them with the following Language */
   mpca_lang(MPCA_LANG_DEFAULT,
             "                                 \
       string   :  /[ab]+/ ;                     \
-      number   : /-?[0-9]+(\\.[0-9]+)?/ ;              \
+      symbol   : /-?[0-9]+(\\.[0-9]+)?/ ;              \
       operator : '+' | '-' | '*' | '/' | '%';                  \
       expr     : <number> | <string> | '(' <operator> <expr>+ ')' ;  \
       lispy    : /^/ <operator> <expr>+ /$/ ;             \
     ",
-            String, Number, Operator, Expr, Lispy);
+            String, Number, Symbol, Expr, Lispy);
 
   puts("Lispy Version 0.0.0.0.2");
   puts("Press Ctrl+c to Exit\n");
@@ -183,18 +234,17 @@ int main(int argc, char **argv)
     char *input = readline("lispy> ");
     add_history(input);
 
-    /* Attempt to parse the user input */
     mpc_result_t r;
     if (mpc_parse("<stdin>", input, Lispy, &r))
     {
-      /* On success print and delete the AST */
+
       lval result = eval(r.output);
       lval_println(result);
       mpc_ast_delete(r.output);
     }
     else
     {
-      /* Otherwise print and delete the Error */
+
       mpc_err_print(r.error);
       mpc_err_delete(r.error);
     }
@@ -202,7 +252,6 @@ int main(int argc, char **argv)
     free(input);
   }
 
-  /* Undefine and delete our parsers */
   mpc_cleanup(5, String, Number, Operator, Expr, Lispy);
 
   return 0;
